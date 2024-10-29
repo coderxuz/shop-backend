@@ -1,0 +1,10 @@
+sqlalchemy
+pydantic==1.10.12
+fastapi
+psycopg2
+pydantic[email]
+uvicorn
+python-multipart
+jinja2
+aiofiles
+python-jose
