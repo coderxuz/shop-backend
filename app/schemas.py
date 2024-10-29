@@ -75,10 +75,15 @@ class ProdMain(BaseModel):
     prod_img:str
     seller_id :Optional[int]
 class ProdChange(BaseModel):
+    image_id:Optional[int]
     product_id:int
     name:str
     price:Union[float,int]
     description:str
     stock_quantity:int
 class Changed(BaseModel):
-    message:str="changed"
+    message:str
+class BasketData(BaseModel):
+    product_id:int
+    quantity:int
+    

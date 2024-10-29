@@ -20,9 +20,10 @@ from datetime import timedelta
 from pydantic import BaseModel
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from typing import Annotated
-from jose import JWTError,jwt
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
-router = APIRouter(prefix="/auth", tags=['AUTH'])
+
+router = APIRouter(prefix="/auth", tags=["AUTH"])
 
 SECRET_KEY = "fe89708897e427a05eb58670e36d9fbfc7da76266081cc62c0064f347dd1e5c7"
 
@@ -30,20 +31,6 @@ ACCESS_TOKEN_EXPIRES_MINUTES = 30
 REFRESH_TOKEN_EXPIRES_DAYS = 7
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/form")
-
-
-def access_token_create(email: str):
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRES_MINUTES)
-    to_encode = {"sub": email, "exp": expire}
-    token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return token
-
-
-def refresh_token_create(email: str):
-    expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRES_DAYS)
-    to_encode = {"sub": email, "exp": expire}
-    token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return token
 
 
 def create_tokens(email: str):
@@ -82,7 +69,7 @@ def verify_password(stored_hash: str, password_to_check: str) -> bool:
         }
     },
 )
-async def create_user(user: UserBase, db:Session = Depends(get_db)):
+async def create_user(user: UserBase, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.email == user.email).first()
     if existing_user:
         raise HTTPException(
@@ -121,7 +108,7 @@ async def create_user(user: UserBase, db:Session = Depends(get_db)):
         }
     },
 )
-async def login_user(user: Login, db:Session = Depends(get_db)):
+async def login_user(user: Login, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == user.email).first()
     if not db_user or not verify_password(db_user.hashed_password, user.password):
         raise HTTPException(
@@ -171,10 +158,7 @@ async def refreshing(request: Request):
         print(payload)
         tokens = create_tokens(payload["sub"])
         access_token = tokens["access_token"]
-        return {
-        "access_token": access_token,
-        "token_type":'bearer'
-    }
+        return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.post(
@@ -191,27 +175,23 @@ async def refreshing(request: Request):
     },
 )
 async def login_user(
-    user: Annotated[OAuth2PasswordRequestForm, Depends()], db:Session = Depends(get_db)
+    user: Annotated[OAuth2PasswordRequestForm, Depends()], db: Session = Depends(get_db)
 ):
-    try:
-        db_user = db.query(User).filter(User.email == user.username).first()
-        if not db_user or not verify_password(db_user.hashed_password, user.password):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Email yoki parol noto'g'ri",
-            )
-        tokens = create_tokens(email=user.username)
-        access_token = tokens["access_token"]
-        refresh_token = tokens["refresh_token"]
-        return {
-            "message": "Muvaffaqiyatli kirish",
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"{e}")
-    finally:
-        db.close()
+
+    db_user = db.query(User).filter(User.email == user.username).first()
+    if not db_user or not verify_password(db_user.hashed_password, user.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Email yoki parol noto'g'ri",
+        )
+    tokens = create_tokens(email=user.username)
+    access_token = tokens["access_token"]
+    refresh_token = tokens["refresh_token"]
+    return {
+        "message": "Muvaffaqiyatli kirish",
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+    }
 
 
 @router.get("/protected-endpoint")

@@ -2,8 +2,6 @@ from fastapi import (
     APIRouter,
     HTTPException,
     status,
-    Header,
-    Response,
     Depends,
     Request,
     Query,
@@ -13,9 +11,15 @@ from app.database import get_db
 from app.models import User, Products, Images
 from datetime import timedelta
 from pydantic import BaseModel
-from app.api.login_register import hash_password, verify_password
-from app.schemas import ProdsSeller, ProdCreated, ProdForm, Value, ProdMain, ProdChange, Changed
-from pathlib import Path
+from app.schemas import (
+    ProdsSeller,
+    ProdCreated,
+    ProdForm,
+    Value,
+    ProdMain,
+    ProdChange,
+    Changed,
+)
 from app.api.login_register import oauth2_scheme, verify_token
 from typing import Optional
 from sqlalchemy import asc, desc
@@ -198,13 +202,15 @@ async def update_prod(
             status_code=status.HTTP_400_BAD_REQUEST, detail="user not found"
         )
     if db_user.id != prod.seller_id:
-         raise HTTPException(
+        raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="product isn't user's"
         )
+    if data.image_id:
+        prod.prod_img = data.image_id
     prod.name = data.name
     prod.price = data.price
     prod.stock_quantity = data.stock_quantity
     prod.description = data.description
     db.commit()
     db.refresh(prod)
-    return {'message':'changed'}
+    return {"message": "changed"}
