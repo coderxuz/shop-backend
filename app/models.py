@@ -1,6 +1,15 @@
 from sqlalchemy import Column, Integer, String, Enum, ForeignKey, Date, Float
+from fastapi import HTTPException, status
 from sqlalchemy.orm import relationship
 from app.database import Base, engine
+from enum import Enum as PyEnum
+
+
+
+class OrderStatus(PyEnum):
+    pending = "pending"
+    delivered = "delivered"
+    cancelled = "cancelled"
 
 
 class Images(Base):
@@ -28,7 +37,7 @@ class Products(Base):
     __tablename__ = "products"
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False)
-    price = Column(String, nullable=False)
+    price = Column(Integer, nullable=False)
     description = Column(String, nullable=True)
     seller_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(Date, nullable=False)
@@ -40,9 +49,8 @@ class Basket(Base):
     __tablename__ = "basket"
     id = Column(Integer, primary_key=True, autoincrement=True)
     customer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    product_id = Column(Integer, ForeignKey("products.id"), nullable=False)
-    quantity = Column(Integer, nullable=False)
-    
+    product_id = Column(Integer, ForeignKey("products.id"), nullable=False, unique=True)
+    quantity = Column(Integer, nullable=False) 
     customer = relationship("User", back_populates="basket")
 
 
@@ -50,27 +58,34 @@ class Order(Base):
     __tablename__ = "order"
     id = Column(Integer, primary_key=True, autoincrement=True)
     customer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    status = Column(Enum("pending", "delivered", name="status_enum", nullable=False))
+    status = Column(Enum(OrderStatus), nullable=False)
     total_amount = Column(Float)
     customer = relationship("User", back_populates="order")
 
-    def total_amount(self, session):
+    def calculate_total_amount(self, session):
         total = 0.0
-        baskets = (
-            session.query(Basket).filter(Basket.customer_id == self.customer_id).all()
-        )
+        baskets = session.query(Basket).filter(Basket.customer_id == self.customer_id).all()
+
         for basket in baskets:
-            product = (
-                session.query(Products).filter(Products.id == basket.product_id).first()
-            )
+            product = session.query(Products).filter(Products.id == basket.product_id).first()
             if product:
-                total += product.price * basket.quantity
+                print("Basket quantity:", basket.quantity)
+                print("Product stock quantity:", product.stock_quantity)
+                if basket.quantity > product.stock_quantity:
+                    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"basket's product's quantity={basket.quantity} greater than original product's quantity = {product.stock_quantity} {product.id}")
+            total += product.price * basket.quantity
+            product.stock_quantity -= basket.quantity
+            session.delete(basket)
+            
+        session.commit()
         self.total_amount = total
         return self.total_amount
 
 
 def create_tables():
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.drop_all(bind=engine)  # Oldingi barcha jadvallarni o'chirib tashlang
+    Base.metadata.create_all(bind=engine)  # Yangi jadvallarni yarating
+
 
 
 if __name__ == "__main__":

@@ -86,4 +86,21 @@ class Changed(BaseModel):
 class BasketData(BaseModel):
     product_id:int
     quantity:int
-    
+class BasketResponse(BaseModel):
+    id:int
+    name:str
+    price:int
+    quantity:int
+    product_id:int
+    prod_img:str
+    class Config:
+        orm_mode = True
+class OrderCancel(BaseModel):
+    order_id:int
+    status:str='cancelled'
+class OrderGet(BaseModel):
+    id:int
+    status:str
+    total_amount:int
+class Exist(BaseModel):
+    message:bool
