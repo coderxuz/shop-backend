@@ -56,5 +56,3 @@ app.include_router(images)
 app.include_router(prods)
 app.include_router(basket)
 app.include_router(order)
-if __name__ == "__main__":
-    uvicorn.run(app, port=10000, host="0.0.0.0")
