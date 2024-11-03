@@ -6,7 +6,6 @@ from app.api.images import router as images
 from app.api.products import router as prods
 from app.api.basket import router as basket
 from app.api.order import router as order
-
 import uvicorn
 
 app = FastAPI()
@@ -58,4 +57,4 @@ app.include_router(prods)
 app.include_router(basket)
 app.include_router(order)
 if __name__ == "__main__":
-    uvicorn.run(app, port=8080, host="0.0.0.0")
+    uvicorn.run(app, port=10000, host="0.0.0.0")
