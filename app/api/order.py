@@ -55,6 +55,10 @@ async def basket_get(request: Request, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="user not found"
         )
+    if db_user.role != "customer":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="You are not customer"
+        )
     if db_user and db_user.role == "customer":
         orders = db.query(Order).filter(Order.customer_id == db_user.id).all()
         order_list = []
