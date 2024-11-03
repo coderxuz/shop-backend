@@ -58,4 +58,4 @@ app.include_router(prods)
 app.include_router(basket)
 app.include_router(order)
 if __name__ == "__main__":
-    uvicorn.run(app, port=8080, host="192.168.1.15")
+    uvicorn.run(app, port=8080, host="0.0.0.0")
