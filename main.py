@@ -11,7 +11,7 @@ import uvicorn
 
 app = FastAPI()
 
-origins = ["http://localhost:5173", "http://192.168.1.15:5173"]
+origins = ["http://localhost:5173", "http://192.168.1.15:5173",'https://grand-jalebi-a4003c.netlify.app/']
 
 
 app.add_middleware(

@@ -29,7 +29,6 @@ router = APIRouter(prefix="/images",tags=['IMAGES'])
             "content": {"application/json": {"example": {"detail": "User not found"}}},
         }
     },
-    # tags=['']
     dependencies=[Depends(oauth2_scheme)],
 )
 async def save_file(request: Request, upload_file: UploadFile = File(...), db:Session = Depends(get_db)):

@@ -12,7 +12,7 @@ from fastapi import (
 )
 import os
 from datetime import timedelta, datetime
-from app.schemas import UserBase, Created, Login, Token, Login1
+from app.schemas import UserBase, Created, Login, Token, Me, UserChange, Changed
 from app.database import get_db
 from app.models import User
 import hashlib
@@ -28,21 +28,24 @@ router = APIRouter(prefix="/auth", tags=["AUTH"])
 SECRET_KEY = "fe89708897e427a05eb58670e36d9fbfc7da76266081cc62c0064f347dd1e5c7"
 
 ACCESS_TOKEN_EXPIRES_MINUTES = 30
-REFRESH_TOKEN_EXPIRES_DAYS = 7
+REFRESH_TOKEN_EXPIRES_DAYS = 1
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/form")
 
 
 def create_tokens(email: str):
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRES_MINUTES)
+    refresh_token_expires = timedelta(days=REFRESH_TOKEN_EXPIRES_DAYS)
     access_token = jwt.encode(
         {"sub": email, "exp": datetime.utcnow() + access_token_expires},
         SECRET_KEY,
         algorithm=ALGORITHM,
     )
     refresh_token = jwt.encode(
-        {"sub": email}, SECRET_KEY, algorithm=ALGORITHM
-    )  # Refresh token uchun davomiylikni qo'shishingiz mumkin
+        {"sub": email, "exp": datetime.utcnow() + refresh_token_expires},
+        SECRET_KEY,
+        algorithm=ALGORITHM,
+    )
     return {"access_token": access_token, "refresh_token": refresh_token}
 
 
@@ -194,6 +197,42 @@ async def login_user(
     }
 
 
+@router.get("/me", response_model=Me, dependencies=[Depends(oauth2_scheme)])
+async def me(request: Request, db: Session = Depends(get_db)):
+    payload = verify_token(request)
+    current_user = payload["sub"]
+    db_user = db.query(User).filter(User.email == current_user).first()
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="user not found"
+        )
+    return db_user
+
+
+@router.patch("/edit",response_model=Changed, dependencies=[Depends(get_db)])
+async def change_user(
+    request: Request, data: UserChange, db: Session = Depends(get_db)
+):
+    payload = verify_token(request)
+    current_user_email = payload["sub"]
+    db_user = db.query(User).filter(User.email == current_user_email).first()
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+    if not verify_password(db_user.hashed_password,data.password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Password incorrect"
+        )
+    if data.first_name:
+        db_user.first_name = data.first_name
+    if data.gender:
+        db_user.gender = data.gender
+    if data.last_name:
+        db_user.last_name = data.last_name
+    db.commit()
+    db.refresh(db_user)
+    return {'message':'changed'}
 @router.get("/protected-endpoint")
 async def protected_endpoint(token: str = Depends(oauth2_scheme)):
-    return {"message": "Bu himoyalangan endpoint"}
+    return {"message": "It's protected endpoint"}
